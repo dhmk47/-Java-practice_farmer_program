@@ -23,6 +23,7 @@ public class SortImpl implements Sort{
 		if(choice == 1) {
 		productList.sort((o1, o2) -> {
 			if(o1.getPrice() == o2.getPrice()) {
+//				o1.getName().compareTo(o2.getName());
 				for(int i = 0; i < o1.getName().length(); i++) {
 					if(o1.getName().charAt(i) == o2.getName().charAt(i)) {
 						continue;
@@ -94,6 +95,22 @@ public class SortImpl implements Sort{
 	@Override
 	public void executeSortByAmount() {
 		
+	}
+
+	@Override
+	public void executeSortByCode() {
+		System.out.println("1. 코드 오름차순\n2. 코드 내림차순");
+		
+		int choice = sc.nextInt();
+		sc.nextLine();
+		
+		if(choice == 1) {
+			
+		}else if(choice == 2) {
+			
+		}else {
+			System.out.println("?");
+		}
 	}
 
 }

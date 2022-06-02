@@ -6,7 +6,7 @@
 			<attribute name="module" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="C:/IT/Java/lombok.jar"/>
 	<classpathentry kind="lib" path="C:/IT/Java/mariadb-java-client-2.7.3.jar"/>
+	<classpathentry kind="lib" path="C:/junil/daeGyeong/sts-4.14.1.RELEASE/lombok.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

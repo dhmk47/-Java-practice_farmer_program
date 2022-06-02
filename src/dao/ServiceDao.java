@@ -165,7 +165,9 @@ public class ServiceDao {
 		return produceKind;
 	}
 	
-	public int purchaseProduct(ProductKind productKind, int amount, UserMst userMst, String name, MyProduct myProduct, int price, boolean haveProduct) {
+	public int purchaseProduct(ProductKind productKind, int amount, UserMst userMst,
+			String name, MyProduct myProduct, int price, boolean haveProduct) {
+		
 		Connection con = null;
 		PreparedStatement pstmt = null;
 		String sql = null;
@@ -198,7 +200,6 @@ public class ServiceDao {
 				e.printStackTrace();
 			} finally {
 				pool.freeConnection(con, pstmt);
-				return result;
 			}
 		}else {
 			try {
@@ -214,9 +215,6 @@ public class ServiceDao {
 						+ "	?\r\n"
 						+ ")";
 				pstmt = con.prepareStatement(sql);
-//				System.out.print("가격입력: ");
-//				price = sc.nextInt();
-//				sc.nextLine();
 				
 				pstmt.setInt(1, productKind.getProduct_code());
 				pstmt.setString(2, productKind.getName());
@@ -231,13 +229,12 @@ public class ServiceDao {
 				e.printStackTrace();
 			} finally {
 				pool.freeConnection(con, pstmt);
-				return result;
 			}
 		}
-		
+		return result;
 	}
 	
-	public HashMap<String, User> showMyInfo(int usercode) {
+	public HashMap<String, User> getUserInfo(int usercode) {
 		Connection con = null;
 		String sql = null;
 		PreparedStatement pstmt = null;
@@ -693,5 +690,133 @@ public class ServiceDao {
 			pool.freeConnection(con, pstmt);
 		}
 		return result;
+	}
+	
+	public int checkProductKind(String productName) {
+		Connection con = null;
+		String sql  = "";
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+			con = pool.getConnection();
+			sql = "SELECT\r\n"
+					+ "	*\r\n"
+					+ "FROM\r\n"
+					+ "	product_kind\r\n"
+					+ "WHERE\r\n"
+					+ "	product_code = (select\r\n"
+					+ "							product_code\r\n"
+					+ "						from\r\n"
+					+ "							product_kind\r\n"
+					+ "						where\r\n"
+					+ "							NAME = ?)";
+			pstmt = con.prepareStatement(sql);
+			pstmt.setString(1, productName);
+			rs = pstmt.executeQuery();
+			
+			rs.next();
+			
+			rs.getInt(1);
+			
+		} catch (SQLDataException e) {
+			return 0;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}finally {
+			pool.freeConnection(con, pstmt, rs);
+		}
+		
+		return 1;
+	}
+	
+	public int updateProductInfo(String modifyInfo, String product, boolean isString) {
+		Connection con = null;
+		String sql = null;
+		PreparedStatement pstmt = null;
+		int result = 0;
+		
+		try {
+			con = pool.getConnection();
+			sql = "UPDATE\r\n"
+					+ "	product_kind\r\n"
+					+ "SET\r\n"
+					+ "	" + modifyInfo + " = ?\r\n"
+					+ "WHERE\r\n"
+					+ "	product_code = (select\r\n"
+					+ "							product_code\r\n"
+					+ "						from\r\n"
+					+ "							product_kind\r\n"
+					+ "						where\r\n"
+					+ "							NAME = ?)";
+			pstmt = con.prepareStatement(sql);
+			
+			System.out.print("새로운 " + modifyInfo + "정보 입력: ");
+			if(isString) {
+				pstmt.setString(1, sc.nextLine());
+			}else {
+				pstmt.setInt(1, sc.nextInt());
+				sc.nextLine();
+			}
+			
+			pstmt.setString(2, product);
+			result = pstmt.executeUpdate();
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			pool.freeConnection(con, pstmt);
+		}
+		
+		return result;
+	}
+	
+	public MyProduct getMyProductByProductName(String productName, int usercode) {
+		Connection con = null;
+		StringBuilder sb = new StringBuilder();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		MyProduct myProduct = null;
+		
+		try {
+			con = pool.getConnection();
+			sb.append("SELECT\r\n"
+					+ "	*\r\n"
+					+ "FROM\r\n"
+					+ "	my_product\r\n"
+					+ "WHERE\r\n"
+					+ "	product_code = (select\r\n"
+					+ "							product_code\r\n"
+					+ "						from\r\n"
+					+ "							my_product\r\n"
+					+ "						where\r\n"
+					+ "							NAME = ? AND usercode = ?)");
+			pstmt = con.prepareStatement(sb.toString());
+			pstmt.setString(1, productName);
+			pstmt.setInt(2, usercode);
+			
+			rs = pstmt.executeQuery();
+			
+			rs.next();
+			
+			myProduct = MyProduct.builder()
+					.product_code(rs.getInt(1))
+					.name(rs.getString(2))
+					.price(rs.getInt(3))
+					.amount(rs.getInt(4))
+					.season(rs.getString(5))
+					.usercode(rs.getInt(6))
+					.build();
+			
+		} catch (SQLDataException e) {
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			pool.freeConnection(con, pstmt, rs);
+		}
+		
+		return myProduct;
 	}
 }

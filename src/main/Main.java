@@ -4,9 +4,10 @@ import java.util.Scanner;
 
 import dao.ServiceDao;
 import db.DBConnectionMgr;
-import dto.ProductInfo;
+import service.ChangeStreamImpl;
 import service.Service;
-import service.ServiceImpl;
+import service.UserService;
+import service.SplitImpl;
 
 public class Main {
 	public static void main(String[] args) {
@@ -18,7 +19,7 @@ public class Main {
 		 * 
 		 */
 		Scanner sc = new Scanner(System.in);
-		Service service = new ServiceImpl(sc, new ServiceDao(DBConnectionMgr.getInstance(), sc));
+		Service service = new UserService(sc, new ServiceDao(DBConnectionMgr.getInstance(), sc), new SplitImpl(sc, new ChangeStreamImpl()));
 		String dot = "■■";
 		while(true) {
 			System.out.println("[농장 프로그램]");

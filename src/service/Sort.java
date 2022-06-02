@@ -9,4 +9,5 @@ public interface Sort {
 	public void executeSortBySeason();
 	public void executeSortByGrowDay();
 	public void executeSortByAmount();
+	public void executeSortByCode();
 }
