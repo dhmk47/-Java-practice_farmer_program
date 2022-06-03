@@ -863,4 +863,74 @@ public class ServiceDao {
 		return myProduct;
 	}
 	
+	public void deleteProduct(String productName) {
+		Connection con = null;
+		StringBuilder sb = new StringBuilder();
+		PreparedStatement pstmt = null;
+		int result = 0;
+		
+		try {
+			con = pool.getConnection();
+			sb.append("DELETE\r\n"
+					+ "FROM\r\n"
+					+ "	product_kind\r\n"
+					+ "WHERE\r\n"
+					+ "	product_code = (select\r\n"
+					+ "							product_code\r\n"
+					+ "						from\r\n"
+					+ "							product_kind\r\n"
+					+ "						where\r\n"
+					+ "							NAME = ?)");
+			pstmt = con.prepareStatement(sb.toString());
+			pstmt.setString(1, productName);
+			
+			result = pstmt.executeUpdate();
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			pool.freeConnection(con, pstmt);
+		}
+		
+		if(result != 0) {
+			System.out.println(productName + " 품목이 삭제 되었습니다.");
+		}else {
+			System.out.println("삭제 오류");
+		}
+	}
+	
+	public void checkDeletedUserProduct(int usercode) {
+		Connection con = null;
+		StringBuilder sb = new StringBuilder();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+			con = pool.getConnection();
+			sb.append("SELECT\r\n"
+					+ "	*\r\n"
+					+ "FROM\r\n"
+					+ "	deleted_user_product\r\n"
+					+ "WHERE\r\n"
+					+ "	product_code = ?");
+			pstmt = con.prepareStatement(sb.toString());
+			pstmt.setInt(1, usercode);
+			
+			rs = pstmt.executeQuery();
+			
+			
+			while(rs.next()) {
+				rs.getInt(1);
+				
+			}
+			
+		} catch(SQLDataException) {
+			return;
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			pool.freeConnection(con, pstmt, rs);
+		}
+	}
+	
 }

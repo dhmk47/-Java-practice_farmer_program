@@ -41,7 +41,21 @@ public class AdminService {
 				productList = serviceDao.getAllProductKindInfo();
 				new SortImpl(sc).executeSortByPrice(productList);
 			}else if(choice == 5) {
-				modifyProductInfo();
+				System.out.println("1. 상품 정보 수정\n2. 상품 삭제하기\n3. 뒤로가기");
+				int select = sc.nextInt();
+				
+				if(select == 1) {
+					modifyProductInfo();
+					
+				}else if(select == 2) {
+					
+					
+				}else if(select == 3) {
+					
+				}else {
+					System.out.println("존재하지 않는 명령어입니다.");
+				}
+				
 			}else if(choice == 99) {
 				break;
 			}else {
@@ -56,18 +70,12 @@ public class AdminService {
 	private void showAllUserInfo(ArrayList<User> userList) {
 		
 		userList.forEach(System.out::println);
-//		Stream<User> userStream = userList.stream();
-//		userStream.forEach(System.out::println);
 		
 	}
 	
 	private void showAllProductKind(ArrayList<ProductKind> productList) {
 		
-//		productList.forEach(i -> System.out.println(i));
 		productList.forEach(System.out::println);
-		
-//		Consumer<ArrayList<ProductKind>> c = t -> t.forEach(System.out::println);
-//		c.accept(productList);
 		
 	}
 	
@@ -150,6 +158,18 @@ public class AdminService {
 			
 		}else {
 			System.out.println(product + "(이)라는 품목은 존재 하지 않습니다.");
+			
+		}
+	}
+	
+	private void removeProduct() {
+		System.out.print("삭제하실 상품의 이름을 입력하세요: ");
+		String productName = sc.nextLine();
+		if(serviceDao.checkProductKind(productName) != 0) {
+			
+			
+		}else {
+			System.out.println("해당 상품은 존재하지 않습니다.");
 			
 		}
 	}

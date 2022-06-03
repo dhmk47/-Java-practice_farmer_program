@@ -66,6 +66,8 @@ public class UserService implements Service{
 //	@Override
 	private void displayMenu(HashMap<String, User> userMap) {
 		
+		System.out.println("품목이 삭제되어 금액이 보상되었습니다.");
+		
 		while(true) {
 			
 			try {
