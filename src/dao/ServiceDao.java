@@ -6,16 +6,17 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
-
-import javax.management.remote.JMXConnectionNotification;
+import java.util.stream.Collectors;
 
 import db.DBConnectionMgr;
+import dto.MyProduct;
 import dto.ProductKind;
 import dto.User;
 import dto.UserDtl;
 import dto.UserMst;
-import dto.MyProduct;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -102,6 +103,7 @@ public class ServiceDao {
 					System.out.println("비밀번호를 틀렸습니다.");
 				}else {
 					UserDtl userDtl = UserDtl.builder()
+							.usercode(rs.getInt(8))
 							.money(rs.getInt(9))
 							.build();
 					userMap.put("um", userMst);
@@ -539,6 +541,7 @@ public class ServiceDao {
 							.build();
 					
 					User userDtl = UserDtl.builder()
+							.usercode(rs.getInt(8))
 							.money(rs.getInt(9))
 							.build();
 					
@@ -736,6 +739,11 @@ public class ServiceDao {
 		PreparedStatement pstmt = null;
 		int result = 0;
 		
+		String newStrTypeInfo = null;
+		int newIntTypeInfo = 0;
+		int oldPrice = 0;
+		
+		
 		try {
 			con = pool.getConnection();
 			sql = "UPDATE\r\n"
@@ -753,15 +761,48 @@ public class ServiceDao {
 			
 			System.out.print("새로운 " + modifyInfo + "정보 입력: ");
 			if(isString) {
-				pstmt.setString(1, sc.nextLine());
+				newStrTypeInfo = sc.nextLine();
+				
+				pstmt.setString(1, newStrTypeInfo);
 			}else {
-				pstmt.setInt(1, sc.nextInt());
+				newIntTypeInfo = sc.nextInt();
 				sc.nextLine();
+				
+				pstmt.setInt(1, newIntTypeInfo);
+				
+				oldPrice = checkPurchaseProduct(product).getPrice();
+				
 			}
 			
 			pstmt.setString(2, product);
 			result = pstmt.executeUpdate();
 			
+			
+			if(result != 0 && modifyInfo.equals("price")) {
+				
+				if(oldPrice > newIntTypeInfo) {
+					int compensation = oldPrice - newIntTypeInfo;
+					ArrayList<User> userList = getAllUserInfo();
+					
+					userList.removeIf(s -> s instanceof UserMst);
+					for(User user : userList) {
+						int usercode = ((UserDtl)user).getUsercode();
+						int userMoney = ((UserDtl)user).getMoney();
+						MyProduct myProduct = getMyProductByProductName(product, usercode);
+						
+						if(myProduct != null) {
+							int compensationUserMoney = (compensation * myProduct.getAmount()) + userMoney;
+							
+							if(updateMyMoney(compensationUserMoney, usercode) != 0);{
+								System.out.println("usercode: " + usercode + " 회원의 보상 금액: " + compensation * myProduct.getAmount());
+								
+							}
+							
+						}
+					}
+					
+				}
+			}
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -786,6 +827,7 @@ public class ServiceDao {
 					+ "FROM\r\n"
 					+ "	my_product\r\n"
 					+ "WHERE\r\n"
+					+ " 	usercode = ? AND\r\n"
 					+ "	product_code = (select\r\n"
 					+ "							product_code\r\n"
 					+ "						from\r\n"
@@ -793,8 +835,9 @@ public class ServiceDao {
 					+ "						where\r\n"
 					+ "							NAME = ? AND usercode = ?)");
 			pstmt = con.prepareStatement(sb.toString());
-			pstmt.setString(1, productName);
-			pstmt.setInt(2, usercode);
+			pstmt.setInt(1, usercode);
+			pstmt.setString(2, productName);
+			pstmt.setInt(3, usercode);
 			
 			rs = pstmt.executeQuery();
 			
@@ -819,4 +862,5 @@ public class ServiceDao {
 		
 		return myProduct;
 	}
+	
 }

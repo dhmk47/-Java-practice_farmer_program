@@ -14,9 +14,17 @@ public class Main {
 		
 		/*
 		 * [구현해야 될 목록]
-		 * 관리자 목록 만들고
 		 * 관리자가 구매 가능한 품목 늘릴 수 있게 구현하기
+		 * 관리자가 품목 삭제하면 회원이 로그인할때 해당 항목 삭제되었다고 알림 띄어주기
+		 * (삭제한 정보를 db에 저장해놓고 회원이 로그인 할 때마다 db정보를 읽어와서 데이터가 있다면
+		 * 뽑아와서 해당 데이터의 정보를 알려주고 해당 정보의 가격만큼 돈 추가해주기)
 		 * 
+		 * 
+		 * [구현된 목록]
+		 * -사용자-
+		 * 
+		 * -관리자-
+		 * 관리자가 품목 가격 수정시 기존 가격보다 낮게 설정할 경우 그 만큼 모든 회원들에게 보상해주기(높게 설정했을땐 무시)
 		 */
 		Scanner sc = new Scanner(System.in);
 		Service service = new UserService(sc, new ServiceDao(DBConnectionMgr.getInstance(), sc), new SplitImpl(sc, new ChangeStreamImpl()));

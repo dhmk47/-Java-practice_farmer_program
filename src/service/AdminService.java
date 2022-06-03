@@ -122,7 +122,10 @@ public class AdminService {
 		}
 		
 		if(productInfoList.contains(condition)) {
-			if(serviceDao.updateProductInfo(condition, product, isString) != 0) { // 업데이트 성공
+			
+			int result = serviceDao.updateProductInfo(condition, product, isString);
+			
+			if(result != 0) {
 				System.out.println(product + "의 " + condition + " 정보가 변경 되었습니다.");
 				
 			}else {
