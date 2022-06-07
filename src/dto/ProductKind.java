@@ -11,4 +11,5 @@ public class ProductKind extends Product {
 	private final int price;
 	private final String season;
 	private final int grow_day;
+	
 }

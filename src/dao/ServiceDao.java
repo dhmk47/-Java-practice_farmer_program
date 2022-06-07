@@ -6,13 +6,12 @@ import java.sql.ResultSet;
 import java.sql.SQLDataException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.stream.Collectors;
 
 import db.DBConnectionMgr;
+import dto.DeletedUserProduct;
 import dto.MyProduct;
+import dto.Product;
 import dto.ProductKind;
 import dto.User;
 import dto.UserDtl;
@@ -113,6 +112,7 @@ public class ServiceDao {
 								
 			} catch (SQLDataException e) {
 				System.out.println("해당 아이디는 존재하지 않습니다.");
+				return null;
 			}
 			
 		} catch (Exception e) {
@@ -155,7 +155,6 @@ public class ServiceDao {
 						.grow_day(rs.getInt(5))
 						.build();
 				
-				return produceKind;
 			} catch (SQLDataException e) {
 				System.out.println(name + "이라는 상품은 구매할 수 없습니다.");
 			}
@@ -214,6 +213,7 @@ public class ServiceDao {
 						+ "	?,\r\n"
 						+ "	?,\r\n"
 						+ "	?,\r\n"
+						+ "	?,\r\n"
 						+ "	?\r\n"
 						+ ")";
 				pstmt = con.prepareStatement(sql);
@@ -224,6 +224,7 @@ public class ServiceDao {
 				pstmt.setInt(4, amount);
 				pstmt.setString(5, productKind.getSeason());
 				pstmt.setInt(6, userMst.getUsercode());
+				pstmt.setInt(7, productKind.getPrice());
 				
 				result = pstmt.executeUpdate();
 				
@@ -337,22 +338,16 @@ public class ServiceDao {
 			rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
-				try {
-					rs.getInt(1);
+				ProductKind productKind = ProductKind.builder()
+						.product_code(rs.getInt(1))
+						.name(rs.getString(2))
+						.price(rs.getInt(3))
+						.season(rs.getString(4))
+						.grow_day(rs.getInt(5))
+						.build();
+				
+				productList.add(productKind);
 					
-					ProductKind productKind = ProductKind.builder()
-							.product_code(rs.getInt(1))
-							.name(rs.getString(2))
-							.price(rs.getInt(3))
-							.season(rs.getString(4))
-							.grow_day(rs.getInt(5))
-							.build();
-					
-					productList.add(productKind);
-					
-				} catch (SQLDataException e) {
-					System.out.println("현재 구매할 수 있는 품목이 없습니다.");
-				}
 			}
 			
 		} catch (Exception e) {
@@ -364,8 +359,8 @@ public class ServiceDao {
 		return productList;
 	}
 	
-	public ArrayList<MyProduct> checkmyProduct(int usercode){
-		ArrayList<MyProduct> productList = new ArrayList<MyProduct>();
+	public ArrayList<Product> checkmyProduct(int usercode){
+		ArrayList<Product> productList = new ArrayList<Product>();
 		Connection con = null;
 		String sql = "";
 		PreparedStatement pstmt = null;
@@ -374,10 +369,7 @@ public class ServiceDao {
 		try {
 			con = pool.getConnection();
 			sql = "SELECT\r\n"
-					+ "	mp.name,\r\n"
-					+ "	mp.price,\r\n"
-					+ "	mp.amount,\r\n"
-					+ "	mp.season\r\n"
+					+ " *\r\n"
 					+ "FROM\r\n"
 					+ "	My_product mp\r\n"
 					+ "	LEFT OUTER JOIN user_mst um ON(um.usercode = mp.usercode)\r\n"
@@ -388,20 +380,18 @@ public class ServiceDao {
 			rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
-				try {
-					rs.getString(1);
-					MyProduct myProduct = MyProduct.builder()
-							.name(rs.getString(1))
-							.price(rs.getInt(2))
-							.amount(rs.getInt(3))
-							.season(rs.getString(4))
-							.build();
-					
-					productList.add(myProduct);
-					
-				} catch (SQLDataException e) {
-					System.out.println("현재 판매 가능한 물품이 없습니다.");
-				}
+				Product myProduct = MyProduct.builder()
+						.product_code(rs.getInt(1))
+						.name(rs.getString(2))
+						.price(rs.getInt(3))
+						.amount(rs.getInt(4))
+						.season(rs.getString(5))
+						.usercode(rs.getInt(6))
+						.purchase_price(rs.getInt(7))
+						.build();
+				
+				productList.add(myProduct);
+				
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -527,31 +517,23 @@ public class ServiceDao {
 			
 			while(rs.next()) {
 				
-				try {
-					rs.getInt(1);
-					
-					User userMst = UserMst.builder()
-							.usercode(rs.getInt(1))
-							.email(rs.getString(2))
-							.name(rs.getString(3))
-							.username(rs.getString(4))
-							.password(rs.getString(5))
-							.create_date(rs.getTimestamp(6).toLocalDateTime())
-							.update_date(rs.getTimestamp(7).toLocalDateTime())
-							.build();
-					
-					User userDtl = UserDtl.builder()
-							.usercode(rs.getInt(8))
-							.money(rs.getInt(9))
-							.build();
-					
-					userList.add(userMst);
-					userList.add(userDtl);
-					
-				} catch (SQLDataException e) {
-					System.out.println("현재 등록된 회원이 없습니다.");
-					
-				}
+				User userMst = UserMst.builder()
+						.usercode(rs.getInt(1))
+						.email(rs.getString(2))
+						.name(rs.getString(3))
+						.username(rs.getString(4))
+						.password(rs.getString(5))
+						.create_date(rs.getTimestamp(6).toLocalDateTime())
+						.update_date(rs.getTimestamp(7).toLocalDateTime())
+						.build();
+				
+				User userDtl = UserDtl.builder()
+						.usercode(rs.getInt(8))
+						.money(rs.getInt(9))
+						.build();
+				
+				userList.add(userMst);
+				userList.add(userDtl);
 				
 			}
 			
@@ -566,14 +548,15 @@ public class ServiceDao {
 		return userList;
 	}
 	
-	public ArrayList<ProductKind> getAllProductKindInfo(){
+	public ArrayList<Product> getAllProductKindInfo(){
 		
 		Connection con = null;
 		String sql = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		
-		ArrayList<ProductKind> productList = new ArrayList<ProductKind>();
+		ArrayList<Product> productList = new ArrayList<Product>();
+//		ArrayList<ProductKind> productList = new ArrayList<ProductKind>();
 		
 		
 		try {
@@ -586,23 +569,17 @@ public class ServiceDao {
 			rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
+//				ProductKind productKind = ProductKind.builder()
+				Product productKind = ProductKind.builder()
+						.product_code(rs.getInt(1))
+						.name(rs.getString(2))
+						.price(rs.getInt(3))
+						.season(rs.getString(4))
+						.grow_day(rs.getInt(5))
+						.build();
 				
-				try {
-					rs.getInt(1);
+				productList.add(productKind);
 					
-					ProductKind productKind = ProductKind.builder()
-							.product_code(rs.getInt(1))
-							.name(rs.getString(2))
-							.price(rs.getInt(3))
-							.season(rs.getString(4))
-							.grow_day(rs.getInt(5))
-							.build();
-					
-					productList.add(productKind);
-					
-				} catch (SQLDataException e) {
-					System.out.println("아직 등록된 물품이 없습니다.");
-				}
 			}
 			
 		} catch (Exception e) {
@@ -615,34 +592,6 @@ public class ServiceDao {
 		
 		return productList;
 		
-	}
-	
-	public void addProductKindData() {
-		Connection con = null;
-		String sql = null;
-		PreparedStatement pstmt = null;
-		int result = 0;
-		
-		try {
-			con = pool.getConnection();
-			sql = "INSERT INTO\r\n"
-					+ "	product_kind\r\n"
-					+ "VALUES(\r\n"
-					+ "	CODE,\r\n"
-					+ "	NAME,\r\n"
-					+ "	price,\r\n"
-					+ "	season,\r\n"
-					+ "	grow_day\r\n"
-					+ ")";
-			pstmt = con.prepareStatement(sql);
-			
-		} catch (Exception e) {
-			e.printStackTrace();
-			
-		} finally {
-			pool.freeConnection(con, pstmt);
-			
-		}
 	}
 	
 	public int addProductKind(int code, String name) {
@@ -850,6 +799,7 @@ public class ServiceDao {
 					.amount(rs.getInt(4))
 					.season(rs.getString(5))
 					.usercode(rs.getInt(6))
+					.purchase_price(rs.getInt(7))
 					.build();
 			
 		} catch (SQLDataException e) {
@@ -899,11 +849,12 @@ public class ServiceDao {
 		}
 	}
 	
-	public void checkDeletedUserProduct(int usercode) {
+	public ArrayList<DeletedUserProduct> checkDeletedUserProduct(int usercode) {
 		Connection con = null;
 		StringBuilder sb = new StringBuilder();
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
+		ArrayList<DeletedUserProduct> deletedMyProductList = new ArrayList<DeletedUserProduct>();
 		
 		try {
 			con = pool.getConnection();
@@ -912,25 +863,58 @@ public class ServiceDao {
 					+ "FROM\r\n"
 					+ "	deleted_user_product\r\n"
 					+ "WHERE\r\n"
-					+ "	product_code = ?");
+					+ "	usercode = ?");
 			pstmt = con.prepareStatement(sb.toString());
 			pstmt.setInt(1, usercode);
 			
 			rs = pstmt.executeQuery();
 			
-			
 			while(rs.next()) {
-				rs.getInt(1);
 				
+				DeletedUserProduct myProduct = DeletedUserProduct.builder()
+						.product_code(rs.getInt(1))
+						.name(rs.getString(2))
+						.amount(rs.getInt(3))
+						.usercode(rs.getInt(4))
+						.purchase_price(rs.getInt(5))
+						.build();
+				
+				deletedMyProductList.add(myProduct);
 			}
 			
-		} catch(SQLDataException) {
-			return;
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
 			pool.freeConnection(con, pstmt, rs);
 		}
+		
+		return deletedMyProductList;
+	}
+	
+	public int deleteUserProductData(int usercode) {
+		Connection con = null;
+		StringBuilder sb = new StringBuilder();
+		PreparedStatement pstmt = null;
+		int result = 0;
+		
+		try {
+			con = pool.getConnection();
+			sb.append("DELETE\r\n"
+					+ "FROM\r\n"
+					+ "	deleted_user_product\r\n"
+					+ "WHERE\r\n"
+					+ "	usercode = ?");
+			pstmt = con.prepareStatement(sb.toString());
+			pstmt.setInt(1, usercode);
+			
+			result = pstmt.executeUpdate();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			pool.freeConnection(con, pstmt);
+		}
+		
+		return result;
 	}
 	
 }

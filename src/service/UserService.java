@@ -3,11 +3,11 @@ package service;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
-import java.util.stream.Stream;
 
 import dao.ServiceDao;
+import dto.DeletedUserProduct;
 import dto.MyProduct;
-import dto.ProductInfo;
+import dto.Product;
 import dto.ProductKind;
 import dto.User;
 import dto.UserDtl;
@@ -19,6 +19,7 @@ public class UserService implements Service{
 	private final Scanner sc;
 	private final ServiceDao serviceDao;
 	private final Split split;
+	private final Sort sort;
 	
 	@Override
 	public void signup() {
@@ -49,7 +50,7 @@ public class UserService implements Service{
 		String username = sc.nextLine();
 		
 		if(username.equals("9999")) {
-			AdminService adminService = new AdminService(sc, serviceDao);
+			AdminService adminService = new AdminService(sc, serviceDao, new SortImpl(sc));
 			adminService.displayAdminMenu();
 			
 		}else {
@@ -58,6 +59,9 @@ public class UserService implements Service{
 			String password = sc.nextLine();
 			HashMap<String, User> userMap = serviceDao.signinUser(username, password);
 			
+			if(userMap == null) {
+				return;
+			}
 			displayMenu(userMap);
 		}
 		
@@ -65,8 +69,39 @@ public class UserService implements Service{
 
 //	@Override
 	private void displayMenu(HashMap<String, User> userMap) {
+		int myUsercode = ((UserMst) userMap.get("um")).getUsercode();
+		int totalCompensationMoney = 0;
 		
-		System.out.println("품목이 삭제되어 금액이 보상되었습니다.");
+		ArrayList<DeletedUserProduct> deletedMyProductList = serviceDao.checkDeletedUserProduct(myUsercode);
+		
+		if(!deletedMyProductList.isEmpty()) {
+			
+			for(DeletedUserProduct deletedMyProduct : deletedMyProductList) {
+				int compensationMoney = deletedMyProduct.getPurchase_price() * deletedMyProduct.getAmount();
+				totalCompensationMoney += compensationMoney;
+				
+				System.out.println(deletedMyProduct.getName() + " 품목이 삭제되어 " + compensationMoney + "원이 보상되었습니다.");
+			}
+			
+			userMap = getMyInfo(userMap);
+			int myMoney = ((UserDtl) userMap.get("ud")).getMoney();
+			
+			if(serviceDao.updateMyMoney(totalCompensationMoney + myMoney, myUsercode) != 0) {
+				System.out.println("총 보상 금액: " + totalCompensationMoney);
+				
+				if(serviceDao.deleteUserProductData(myUsercode) == 0) {
+					System.out.println("유저 삭제 품목 데이터 삭제오류");
+					
+				}
+				
+			} else {
+				System.out.println("보상 오류");
+				
+			}
+			
+		}
+			
+		
 		
 		while(true) {
 			
@@ -114,8 +149,43 @@ public class UserService implements Service{
 					
 				}else if(select == 2) {
 					userMap = getMyInfo(userMap);
-					ArrayList<MyProduct> myProduct = getMyProduct(((UserMst)userMap.get("um")).getUsercode());
-					split.splitBySomething(myProduct);
+					ArrayList<Product> myProduct = getMyProduct(((UserMst)userMap.get("um")).getUsercode());
+					
+					if(myProduct == null) {
+						return;
+					}
+					
+					System.out.println("1. 정렬로 보기\n2. 분할로 보기");
+					int choiceMenu = sc.nextInt();
+					sc.nextLine();
+					
+					if(choiceMenu == 1) {
+						System.out.println("1. 가격순 정렬\n2. 계절순 정렬\n3. 개수 정렬\n4. 이름순 정렬\n5. 코드순 정렬");
+						
+						int choiceSortMenu = sc.nextInt();
+						sc.nextLine();
+						
+						if(choiceSortMenu == 1) {
+							sort.executeSortByPrice(myProduct);
+						}else if(choiceSortMenu == 2) {
+							sort.executeSortBySeason(myProduct);
+						}else if(choiceSortMenu == 3) {
+							sort.executeSortByAmount(myProduct);
+						}else if(choiceSortMenu == 4) {
+							sort.executeSortByName(myProduct);
+						}else if(choiceSortMenu == 5) {
+							sort.executeSortByCode(myProduct);
+						}else {
+							System.out.println("존재하지 않는 명령어입니다.");
+						}
+						
+					}else if(choiceMenu == 2) {
+						split.splitBySomething(myProduct);
+						
+					}else {
+						System.out.println("해당 명령어는 존재하지 않는 명령어 입니다.");
+					}
+					
 					
 				}else if(select == 3) {
 					
@@ -182,28 +252,26 @@ public class UserService implements Service{
 			price *= amount;
 			
 			if(myMoney > price) {
-				ArrayList<MyProduct> myProductList = getMyProduct(userMst.getUsercode());
 				
-				for(MyProduct myProduct : myProductList) {
-					if(myProduct.getName().equals(name)) {
-						selectProduct = myProduct;
-						break;
-						
-					}
-					
-				}
+				selectProduct = serviceDao.getMyProductByProductName(name, userMst.getUsercode());
 				
-				if(serviceDao.checkIfAlreadyHaveProduct(userMst.getUsercode(), name)) {
+				// 회원이 기존에 가지고 있는 품목을 추가로 구매한다면 금액설정을 할 필요 없습니다.
+				if(selectProduct != null) {
 					productPrice = selectProduct.getPrice();
 					
-				}else {
+				}else {	// 회원이 가지고 있지 않은 품목을 구매한다면
 					System.out.print("금액을 입력하세요: ");
 					productPrice = sc.nextInt();
 					sc.nextLine();
 					haveProduct = false;
 					
 				}
-				
+						
+					// 불필요한 코드?
+//					if(serviceDao.checkIfAlreadyHaveProduct(userMst.getUsercode(), name)) {
+//						productPrice = selectProduct.getPrice();
+//						
+//					}
 				int result = serviceDao.purchaseProduct(productKind, amount, userMst, name, selectProduct, productPrice, haveProduct);
 				
 				if(result != 0) {
@@ -247,51 +315,36 @@ public class UserService implements Service{
 		int usercode = ((UserMst)userMap.get("um")).getUsercode();
 		int result = 0;
 		
-//		MyProduct myProduct = serviceDao.getMyProductByProductName(sellProductName, usercode);
+		MyProduct myProduct = serviceDao.getMyProductByProductName(sellProductName, usercode);
 		
-//		if(myProduct == null) {
-//			System.out.println(sellProductName + "은 보유하고 있지 않은 품목입니다.");
-//		}
-		
-		ArrayList<MyProduct> myProductList = getMyProduct(usercode);
-		
-		for(MyProduct myProduct : myProductList) {
+		if(myProduct != null) {
+			if(myProduct.getAmount() == 0) {
+				System.out.println("재고가 0개입니다.");
+				return;
+				
+			}
+			System.out.println("현재 개수/가격: " + myProduct.getAmount() + "/" + myProduct.getPrice());
+			System.out.print("몇 개를 판매 하시겠습니까?");
+			int sellAmount = sc.nextInt();
+			sc.nextLine();
 			
-			if(myProduct.getName().equals(sellProductName)) {
+			if(myProduct.getAmount() < sellAmount) {
+				System.out.println("현재 가지고 있는 갯수를 초과했습니다.");
+				return;
 				
-				if(myProduct.getAmount() == 0) {
-					System.out.println("재고가 0개입니다.");
-					break;
-					
-				}
+			}else {
+				int updateAmount = myProduct.getAmount() - sellAmount;
+				result = serviceDao.sellMyProduct(usercode, updateAmount, sellProductName);
 				
-				System.out.println("현재 개수/가격: " + myProduct.getAmount() + "/" + myProduct.getPrice());
-				System.out.print("몇 개를 판매 하시겠습니까?");
-				int sellAmount = sc.nextInt();
-				sc.nextLine();
-				
-				if(myProduct.getAmount() < sellAmount) {
-					System.out.println("현재 가지고 있는 갯수를 초과했습니다.");
-					break;
+				if(result != 0) {
+					updateMyMoney(myProduct.getPrice(), sellAmount, (UserMst)userMap.get("um"), ((UserDtl)userMap.get("ud")).getMoney());
 					
-				}else {
-					int updateAmount = myProduct.getAmount() - sellAmount;
-					result = serviceDao.sellMyProduct(usercode, updateAmount, sellProductName);
-					
-					if(result != 0) {
-						updateMyMoney(myProduct.getPrice(), sellAmount, (UserMst)userMap.get("um"), ((UserDtl)userMap.get("ud")).getMoney());
-						
-					}
-					else if(result == 0) {
-						System.out.println("해당 품목은 보유하고 있지 않습니다.");
-						
-					}
-					
-					break;
 				}
 				
 			}
 			
+		}else {
+			System.out.println("해당 품목은 보유하고 있지 않습니다.");
 		}
 		
 	}
@@ -301,6 +354,11 @@ public class UserService implements Service{
 	private void showeProductKind() {
 		ArrayList<ProductKind> productList = serviceDao.checkPurchaseableProduct();
 		
+		if(productList.isEmpty()) {
+			System.out.println("현재 구매 가능한 품목이 없습니다. 잠시만 기다려주세요");
+			return;
+		}
+		
 		productList.forEach(i -> System.out.println(i));
 		
 		System.out.println("계속하시려면 엔터키 입력");
@@ -309,8 +367,13 @@ public class UserService implements Service{
 	
 	
 	// 가지고 있는 품목 가져오기
-	private ArrayList<MyProduct> getMyProduct(int usercode) {
-		ArrayList<MyProduct> productList = serviceDao.checkmyProduct(usercode);
+	private ArrayList<Product> getMyProduct(int usercode) {
+		ArrayList<Product> productList = serviceDao.checkmyProduct(usercode);
+		
+		if(productList.isEmpty()) {
+			System.out.println("현재 가지고 있는 품목이 없습니다.");
+			return null;
+		}
 		
 		return productList;
 	}
@@ -332,20 +395,15 @@ public class UserService implements Service{
 			
 		}
 		
-		ArrayList<MyProduct> myProductList = getMyProduct(userMst.getUsercode());
-		MyProduct selectProduct = null;
+		MyProduct selectProduct = serviceDao.getMyProductByProductName(name, userMst.getUsercode());
 		
-		for(MyProduct myProduct : myProductList) {
-			
-			if(myProduct.getName().equals(name)) {
-				selectProduct = myProduct;
-				price = selectProduct.getPrice();
-				break;
-				
-			}
+		// 내가 가지고 있는 품목이 있다면 그 가격으로 재배해서 품목에 주가하기
+		if(selectProduct != null){
+			price = selectProduct.getPrice();
 			
 		}
-		
+			
+		// 없다면 금액 설정
 		if(price == 0) {
 			System.out.print("금액을 입력하세요: ");
 			price = sc.nextInt();
@@ -369,140 +427,4 @@ public class UserService implements Service{
 		System.out.println(income + "원을 벌었습니다.");
 	}
 	
-//	private void displayAdminMenu() {
-//		ArrayList<ProductKind> productList = null;
-//		
-//		while(true) {
-//			System.out.println("[관리자]");
-//			System.out.println("1. 현재 가입된 유저 정보 보기\n2. 현재 구매 가능한 품목 보기\n3. 구매 가능 품목 추가"
-//					+ "\n4. 정렬보기\n5. 상품 정보 수정\n99 로그아웃");
-//			int choice = sc.nextInt();
-//			sc.nextLine();
-//			
-//			if(choice == 1) {
-//				ArrayList<User> userList = serviceDao.getAllUserInfo();
-//				
-//				showAllUserInfo(userList);
-//				
-//			}else if(choice == 2) {
-//				productList = serviceDao.getAllProductKindInfo();
-//				
-//				showAllProductKind(productList);
-//				
-//			}else if(choice == 3) {
-//				addProductKind();
-//				
-//			}else if(choice == 4) {
-//				productList = serviceDao.getAllProductKindInfo();
-//				new SortImpl(sc).executeSortByPrice(productList);
-//			}else if(choice == 5) {
-//				modifyProductInfo();
-//			}else if(choice == 99) {
-//				break;
-//			}else {
-//				System.out.println("?");
-//			}
-//			
-//			System.out.println();
-//			
-//		}
-//	}
-//	
-//	private void showAllUserInfo(ArrayList<User> userList) {
-//		
-//		userList.forEach(System.out::println);
-////		Stream<User> userStream = userList.stream();
-////		userStream.forEach(System.out::println);
-//		
-//	}
-//	
-//	private void showAllProductKind(ArrayList<ProductKind> productList) {
-//		
-////		productList.forEach(i -> System.out.println(i));
-//		productList.forEach(System.out::println);
-//		
-////		Consumer<ArrayList<ProductKind>> c = t -> t.forEach(System.out::println);
-////		c.accept(productList);
-//		
-//	}
-//	
-//	private void addProductKind() {
-//		int productCode = 0;
-//		String name = null;
-//		
-//		System.out.print("추가하실 품목의 코드를 입력하세요: ");
-//		productCode = sc.nextInt();
-//		sc.nextLine();
-//		System.out.print("추가하실 품목의 이름을 입력하세요: ");
-//		name = sc.nextLine();
-//		
-//		ArrayList<ProductKind> productList = serviceDao.getAllProductKindInfo();
-//		
-//		for(ProductKind product : productList) {
-//			if(product.getProduct_code() == productCode) {
-//				System.out.println("현재 같은 코드의 품목이 존재합니다.");
-//				return;
-//				
-//			}else if(product.getName().equals(name)) {
-//					System.out.println("현재 같은 이름의 품목이 존재합니다.");
-//					return;
-//					
-//			}
-//			
-//		}
-//		if(serviceDao.addProductKind(productCode, name) != 0) {
-//			System.out.println(name + "(이)라는 상품을 코드 " + productCode + "으로 등록 되었습니다.");
-//			
-//		}else {
-//			System.out.println("등록 오류!");
-//		}
-//		
-//	}
-//	
-//	// 원하는 조건으로 정보를 읽는 메뉴
-//	private void conditionFindMenu(String product) {
-//		String condition = null;
-//		boolean isString = false;
-//		
-//		ProductInfo productInfo = ProductInfo.getInstance();
-//		ArrayList<String> productInfoList = productInfo.getProductInfo();
-//		
-//		System.out.println("product_code, name, price, season, grow_day");
-//		System.out.print("변경을 원하는 정보를 입력하세요: ");
-//		condition = sc.nextLine();
-//		
-//		if(condition.equals("name") || condition.equals("season")) {
-//			isString = true;
-//			
-//		}
-//		
-//		if(productInfoList.contains(condition)) {
-//			if(serviceDao.updateProductInfo(condition, product, isString) != 0) { // 업데이트 성공
-//				System.out.println(product + "의 " + condition + " 정보가 변경 되었습니다.");
-//				
-//			}else {
-//				System.out.println("변경오류");
-//				
-//			}
-//		}else {
-//			System.out.println("해당 정보는 변경이 불가능 합니다.");
-//			
-//		}
-//	}
-//	
-//	private void modifyProductInfo() {
-//		String product = null;
-//		
-//		System.out.print("변경을 원하는 품목의 이름을 입력하세요: ");
-//		product = sc.nextLine();
-//		
-//		
-//		if(serviceDao.checkProductKind(product) != 0) {
-//			conditionFindMenu(product);
-//			
-//		}else {
-//			System.out.println(product + "(이)라는 품목은 존재 하지 않습니다.");
-//			
-//		}
-//	}
 }

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import dto.MyProduct;
+import dto.Product;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -16,8 +17,8 @@ public class SplitImpl implements Split{
 	private final ChangeStream changeStreamImpl;
 
 	@Override
-	public void splitBySomething(ArrayList<MyProduct> myProductList) {
-		Stream<MyProduct> myProductStream = changeStreamImpl.changeStream(myProductList);
+	public void splitBySomething(ArrayList<Product> myProductList) {
+		Stream<Product> myProductStream = changeStreamImpl.changeStream(myProductList);
 		
 		System.out.println("1. 계졀별 분할\n2. 가격별 분할\n3. 갯수별 분할");
 		System.out.print("입력: ");
@@ -25,7 +26,7 @@ public class SplitImpl implements Split{
 		sc.nextLine();
 		
 		if(choice == 1) {
-			Map<String, List<MyProduct>> mapList = myProductStream.collect(Collectors.groupingBy(s -> s.getSeason()));
+			Map<String, List<Product>> mapList = myProductStream.collect(Collectors.groupingBy(s -> s.getSeason()));
 			
 			System.out.print("보고 싶은 계절 입력(봄, 여름, 가을, 겨울, 전부): ");
 			String season = sc.nextLine();
@@ -91,7 +92,7 @@ public class SplitImpl implements Split{
 			int price = sc.nextInt();
 			sc.nextLine();
 			
-			Map<Boolean, List<MyProduct>> mapList = myProductStream.collect(Collectors.partitioningBy(s -> s.getPrice() > price - 1));
+			Map<Boolean, List<Product>> mapList = myProductStream.collect(Collectors.partitioningBy(s -> s.getPrice() > price - 1));
 			
 			System.out.println("[" + price + "원 이상]\n");
 			mapList.get(true).sort((o1, o2) -> o1.getPrice() - o2.getPrice());
@@ -109,7 +110,7 @@ public class SplitImpl implements Split{
 			int amount = sc.nextInt();
 			sc.nextLine();
 			
-			Map<Boolean, List<MyProduct>> mapList = myProductStream.collect(Collectors.partitioningBy(s -> s.getAmount() > amount - 1));
+			Map<Boolean, List<Product>> mapList = myProductStream.collect(Collectors.partitioningBy(s -> s.getAmount() > amount - 1));
 			
 			System.out.println("[" + amount + "개 이상]\n");
 			mapList.get(true).sort((o1, o2) -> o1.getAmount() - o2.getAmount());

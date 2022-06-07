@@ -2,8 +2,8 @@ package service;
 
 import java.util.ArrayList;
 
-import dto.MyProduct;
+import dto.Product;
 
 public interface Split {
-	public void splitBySomething(ArrayList<MyProduct> myProductList);
+	public void splitBySomething(ArrayList<Product> myProductList);
 }

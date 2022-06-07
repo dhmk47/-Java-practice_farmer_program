@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 import dao.ServiceDao;
+import dto.Product;
 import dto.ProductInfo;
 import dto.ProductKind;
 import dto.User;
@@ -13,9 +14,11 @@ import lombok.RequiredArgsConstructor;
 public class AdminService {
 	private final Scanner sc;
 	private final ServiceDao serviceDao;
+	private final Sort sort;
 	
 	public void displayAdminMenu() {
-		ArrayList<ProductKind> productList = null;
+		ArrayList<Product> productList = null;
+//		ArrayList<ProductKind> productList = null;
 		
 		while(true) {
 			System.out.println("[관리자]");
@@ -39,16 +42,39 @@ public class AdminService {
 				
 			}else if(choice == 4) {
 				productList = serviceDao.getAllProductKindInfo();
-				new SortImpl(sc).executeSortByPrice(productList);
+				
+				if(productList.isEmpty()) {
+					System.out.println("현재 등록된 품목이 존재하지 않습니다.");
+					return;
+				}
+				
+				System.out.println("1. 가격순 정렬\n2. 계절순 정렬\n3. 성장 날짜순 정렬\n4. 이름순 정렬\n5. 코드순 정렬");
+				int select = sc.nextInt();
+				
+				if(select == 1) {
+					sort.executeSortByPrice(productList);
+				}else if(select == 2) {
+					sort.executeSortBySeason(productList);
+				}else if(select == 3) {
+					sort.executeSortByGrowDay(productList);
+				}else if(select == 4) {
+					sort.executeSortByName(productList);
+				}else if(select == 5) {
+					sort.executeSortByCode(productList);
+				}else {
+					System.out.println("존재하지 않는 명령어입니다.");
+				}
+				
 			}else if(choice == 5) {
 				System.out.println("1. 상품 정보 수정\n2. 상품 삭제하기\n3. 뒤로가기");
 				int select = sc.nextInt();
+				sc.nextLine();
 				
 				if(select == 1) {
 					modifyProductInfo();
 					
 				}else if(select == 2) {
-					
+					removeProduct();
 					
 				}else if(select == 3) {
 					
@@ -69,11 +95,20 @@ public class AdminService {
 	
 	private void showAllUserInfo(ArrayList<User> userList) {
 		
+		if(userList.isEmpty()) {
+			System.out.println("현재 가입된 회원이 없습니다.");
+		}
+		
 		userList.forEach(System.out::println);
 		
 	}
 	
-	private void showAllProductKind(ArrayList<ProductKind> productList) {
+	private void showAllProductKind(ArrayList<Product> productList) {
+		
+		if(productList.isEmpty()) {
+			System.out.println("현재 등록된 품목이 존재하지 않습니다.");
+			return;
+		}
 		
 		productList.forEach(System.out::println);
 		
@@ -83,22 +118,30 @@ public class AdminService {
 		int productCode = 0;
 		String name = null;
 		
+		ArrayList<Product> productList = serviceDao.getAllProductKindInfo();
+		
+		if(!productList.isEmpty()) {
+			System.out.println("이미 등록되어 있는 상품 코드 : 이름");
+			productList.forEach(o -> System.out.println(o.getProduct_code() + " : " + o.getName()));
+			
+		}
+		
+		
 		System.out.print("추가하실 품목의 코드를 입력하세요: ");
 		productCode = sc.nextInt();
 		sc.nextLine();
+		
 		System.out.print("추가하실 품목의 이름을 입력하세요: ");
 		name = sc.nextLine();
 		
-		ArrayList<ProductKind> productList = serviceDao.getAllProductKindInfo();
-		
-		for(ProductKind product : productList) {
+		for(Product product : productList) {
 			if(product.getProduct_code() == productCode) {
-				System.out.println("현재 같은 코드의 품목이 존재합니다.");
+				System.out.println("해당 코드는 이미 존재하므로 등록할 수 없습니다.");
 				return;
 				
 			}else if(product.getName().equals(name)) {
-					System.out.println("현재 같은 이름의 품목이 존재합니다.");
-					return;
+				System.out.println("해당 이름은 이미 존재하므로 등록할 수 없습니다.");
+				return;
 					
 			}
 			
@@ -166,7 +209,7 @@ public class AdminService {
 		System.out.print("삭제하실 상품의 이름을 입력하세요: ");
 		String productName = sc.nextLine();
 		if(serviceDao.checkProductKind(productName) != 0) {
-			
+			serviceDao.deleteProduct(productName);
 			
 		}else {
 			System.out.println("해당 상품은 존재하지 않습니다.");

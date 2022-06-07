@@ -13,12 +13,11 @@ public class MyProduct extends Product {
 	private int amount;
 	private String season;
 	private int usercode;
+	private int purchase_price;
 	
 	@Override
 	public String toString() {
-		return "MyProduct [name=" + name + ", price=" + price + ", amount=" + amount
-				+ ", season=" + season + "]";
+		return "MyProduct [name=" + name + ", price=" + price + ", amount=" + amount + ", season=" + season
+				+ ", purchase_price=" + purchase_price + "]";
 	}
-	
-	
 }
