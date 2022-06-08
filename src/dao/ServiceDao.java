@@ -548,14 +548,14 @@ public class ServiceDao {
 		return userList;
 	}
 	
-	public ArrayList<Product> getAllProductKindInfo(){
+	public ArrayList<ProductKind> getAllProductKindInfo(){
 		
 		Connection con = null;
 		String sql = null;
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
 		
-		ArrayList<Product> productList = new ArrayList<Product>();
+		ArrayList<ProductKind> productList = new ArrayList<ProductKind>();
 //		ArrayList<ProductKind> productList = new ArrayList<ProductKind>();
 		
 		
@@ -569,8 +569,7 @@ public class ServiceDao {
 			rs = pstmt.executeQuery();
 			
 			while(rs.next()) {
-//				ProductKind productKind = ProductKind.builder()
-				Product productKind = ProductKind.builder()
+				ProductKind productKind = ProductKind.builder()
 						.product_code(rs.getInt(1))
 						.name(rs.getString(2))
 						.price(rs.getInt(3))

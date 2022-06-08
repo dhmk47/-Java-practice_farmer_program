@@ -6,10 +6,11 @@ import lombok.Getter;
 @Builder
 @Getter
 public class DeletedUserProduct extends Product{
-	private int product_code;
-	private String name;
-	private int amount;
-	private int usercode;
-	private int purchase_price;
+	private final int product_code;
+	private final String name;
+	private final int amount;
+	private final int usercode;
+	private final int purchase_price;
+	
 
 }

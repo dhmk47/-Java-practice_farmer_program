@@ -5,5 +5,5 @@ import java.util.ArrayList;
 import dto.Product;
 
 public interface Split {
-	public void splitBySomething(ArrayList<Product> myProductList);
+	public void splitBySomething(ArrayList<? extends Product> myProductList);
 }

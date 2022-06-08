@@ -2,6 +2,7 @@ package service;
 
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import dao.ServiceDao;
 import dto.Product;
@@ -17,8 +18,7 @@ public class AdminService {
 	private final Sort sort;
 	
 	public void displayAdminMenu() {
-		ArrayList<Product> productList = null;
-//		ArrayList<ProductKind> productList = null;
+		ArrayList<ProductKind> productList = null;
 		
 		while(true) {
 			System.out.println("[관리자]");
@@ -56,7 +56,7 @@ public class AdminService {
 				}else if(select == 2) {
 					sort.executeSortBySeason(productList);
 				}else if(select == 3) {
-					sort.executeSortByGrowDay(productList);
+					sort.executeSortByGrowDay(productList.stream().map(o -> (ProductKind) o).collect(Collectors.toCollection(ArrayList::new)));
 				}else if(select == 4) {
 					sort.executeSortByName(productList);
 				}else if(select == 5) {
@@ -103,7 +103,7 @@ public class AdminService {
 		
 	}
 	
-	private void showAllProductKind(ArrayList<Product> productList) {
+	private void showAllProductKind(ArrayList<ProductKind> productList) {
 		
 		if(productList.isEmpty()) {
 			System.out.println("현재 등록된 품목이 존재하지 않습니다.");
@@ -118,7 +118,7 @@ public class AdminService {
 		int productCode = 0;
 		String name = null;
 		
-		ArrayList<Product> productList = serviceDao.getAllProductKindInfo();
+		ArrayList<ProductKind> productList = serviceDao.getAllProductKindInfo();
 		
 		if(!productList.isEmpty()) {
 			System.out.println("이미 등록되어 있는 상품 코드 : 이름");
@@ -134,7 +134,7 @@ public class AdminService {
 		System.out.print("추가하실 품목의 이름을 입력하세요: ");
 		name = sc.nextLine();
 		
-		for(Product product : productList) {
+		for(ProductKind product : productList) {
 			if(product.getProduct_code() == productCode) {
 				System.out.println("해당 코드는 이미 존재하므로 등록할 수 없습니다.");
 				return;

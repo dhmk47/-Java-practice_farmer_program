@@ -3,6 +3,7 @@ package service;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import dao.ServiceDao;
 import dto.DeletedUserProduct;
@@ -170,7 +171,7 @@ public class UserService implements Service{
 						}else if(choiceSortMenu == 2) {
 							sort.executeSortBySeason(myProduct);
 						}else if(choiceSortMenu == 3) {
-							sort.executeSortByAmount(myProduct);
+							sort.executeSortByAmount(myProduct.stream().map(o -> (MyProduct) o).collect(Collectors.toCollection(ArrayList::new)));
 						}else if(choiceSortMenu == 4) {
 							sort.executeSortByName(myProduct);
 						}else if(choiceSortMenu == 5) {
